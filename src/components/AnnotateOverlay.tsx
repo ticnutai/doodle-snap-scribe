@@ -174,7 +174,11 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       const y = e.clientY - rect.top;
       // Save undo state before placing stamp
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      activeStamp.draw(ctx, x, y, stampSize, state.color);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((stampRotation * Math.PI) / 180);
+      activeStamp.draw(ctx, 0, 0, stampSize, state.color);
+      ctx.restore();
       return;
     }
     if (state.tool === "text") {
