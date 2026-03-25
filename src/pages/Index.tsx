@@ -6,44 +6,37 @@ import { GalleryPanel } from "@/components/GalleryPanel";
 import { PinnedScreenshot } from "@/components/PinnedScreenshot";
 import { TimerOverlay } from "@/components/TimerOverlay";
 import { useScreenCapture, Screenshot } from "@/hooks/useScreenCapture";
-import { Camera, Sparkles, PenTool, Image as ImageIcon, Pin } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Camera, Sparkles, PenTool, Image as ImageIcon, Pin, LogOut, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const {
     screenshots,
     isCapturing,
     captureScreen,
     deleteScreenshot,
     downloadScreenshot,
+    togglePin,
+    saveAnnotation,
   } = useScreenCapture();
 
   const [showAnnotate, setShowAnnotate] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
-  const [pinnedScreenshots, setPinnedScreenshots] = useState<Screenshot[]>([]);
+  const [localPinned, setLocalPinned] = useState<Screenshot[]>([]);
   const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
 
   const handleAnnotateCapture = useCallback(
     (dataUrl: string) => {
-      // The annotation itself is saved as a screenshot
-      const newScreenshot: Screenshot = {
-        id: crypto.randomUUID(),
-        dataUrl,
-        timestamp: new Date(),
-        title: `Annotation ${screenshots.length + 1}`,
-        tags: ["annotation"],
-      };
-      // We add it via a workaround - for now just download
-      downloadScreenshot(newScreenshot);
+      saveAnnotation(dataUrl);
     },
-    [screenshots.length, downloadScreenshot]
+    [saveAnnotation]
   );
 
-  const handleTimerCapture = useCallback(
-    (seconds: number) => {
-      setTimerSeconds(seconds);
-    },
-    []
-  );
+  const handleTimerCapture = useCallback((seconds: number) => {
+    setTimerSeconds(seconds);
+  }, []);
 
   const handleTimerComplete = useCallback(() => {
     setTimerSeconds(null);
@@ -51,18 +44,37 @@ const Index = () => {
   }, [captureScreen]);
 
   const handlePin = useCallback((screenshot: Screenshot) => {
-    setPinnedScreenshots((prev) => {
+    setLocalPinned((prev) => {
       if (prev.find((s) => s.id === screenshot.id)) return prev;
       return [...prev, screenshot];
     });
-  }, []);
+    togglePin(screenshot.id);
+  }, [togglePin]);
 
   const handleUnpin = useCallback((id: string) => {
-    setPinnedScreenshots((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+    setLocalPinned((prev) => prev.filter((s) => s.id !== id));
+    togglePin(id);
+  }, [togglePin]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden" dir="rtl">
+      {/* User menu - top right */}
+      <div className="fixed top-4 left-4 z-30 flex items-center gap-2">
+        <div className="bg-background border-2 border-accent/30 rounded-xl px-3 py-1.5 flex items-center gap-2 gold-shadow">
+          <User className="h-4 w-4 text-accent" />
+          <span className="text-xs text-foreground font-medium">{user?.email}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            title="התנתק"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
       {/* Floating Sidebar */}
       <FloatingSidebar
         onCapture={captureScreen}
@@ -73,10 +85,9 @@ const Index = () => {
         screenshotCount={screenshots.length}
       />
 
-      {/* Main Content - Welcome */}
+      {/* Main Content */}
       <div className="flex items-center justify-center min-h-screen p-8">
         <div className="max-w-2xl text-center space-y-8">
-          {/* Logo */}
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl gold-gradient gold-shadow">
             <Camera className="h-10 w-10 text-primary-foreground" />
           </div>
@@ -90,7 +101,6 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Feature cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
             {[
               { icon: Camera, title: "צילום מהיר", desc: "צלם בלחיצה" },
@@ -100,7 +110,7 @@ const Index = () => {
             ].map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="p-4 rounded-xl border-2 border-accent/30 bg-background hover:border-accent transition-colors gold-shadow/30 group"
+                className="p-4 rounded-xl border-2 border-accent/30 bg-background hover:border-accent transition-colors group"
               >
                 <div className="w-10 h-10 rounded-lg gold-gradient flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                   <Icon className="h-5 w-5 text-primary-foreground" />
@@ -111,7 +121,6 @@ const Index = () => {
             ))}
           </div>
 
-          {/* Hint */}
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-4">
             <Sparkles className="h-4 w-4 text-accent" />
             <span>העבר את העכבר לקצה השמאלי של המסך כדי לפתוח את הסיידבר</span>
@@ -143,16 +152,12 @@ const Index = () => {
 
       <AnimatePresence>
         {timerSeconds !== null && (
-          <TimerOverlay
-            seconds={timerSeconds}
-            onComplete={handleTimerComplete}
-          />
+          <TimerOverlay seconds={timerSeconds} onComplete={handleTimerComplete} />
         )}
       </AnimatePresence>
 
-      {/* Pinned Screenshots */}
       <AnimatePresence>
-        {pinnedScreenshots.map((s) => (
+        {localPinned.map((s) => (
           <PinnedScreenshot
             key={s.id}
             screenshot={s}
