@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, useId, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { X, Minus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWindowManager } from "@/hooks/useWindowManager";
 
 interface FloatingWindowProps {
   title: string;
@@ -16,7 +17,6 @@ interface FloatingWindowProps {
   defaultY?: number;
   className?: string;
   headerClassName?: string;
-  /** If true, shows a minimize button */
   minimizable?: boolean;
 }
 
@@ -34,6 +34,10 @@ export function FloatingWindow({
   headerClassName,
   minimizable = false,
 }: FloatingWindowProps) {
+  const windowId = useId();
+  const { bringToFront, register, unregister } = useWindowManager();
+
+  const [zIndex, setZIndex] = useState(60);
   const [pos, setPos] = useState({
     x: defaultX ?? Math.max(0, (window.innerWidth - defaultWidth) / 2),
     y: defaultY ?? Math.max(0, (window.innerHeight - defaultHeight) / 2),
@@ -47,34 +51,46 @@ export function FloatingWindow({
   const isResizing = useRef<string | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0, px: 0, py: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape
+  // Register/unregister with window manager
+  useEffect(() => {
+    register(windowId);
+    setZIndex(bringToFront(windowId));
+    return () => unregister(windowId);
+  }, [windowId, register, unregister, bringToFront]);
+
+  const focus = useCallback(() => {
+    setZIndex(bringToFront(windowId));
+  }, [bringToFront, windowId]);
+
+  // Close on Escape - only the topmost window
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  // Drag
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
     if (isMaximized) return;
     isDragging.current = true;
     dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
     e.preventDefault();
-  }, [pos, isMaximized]);
+    focus();
+  }, [pos, isMaximized, focus]);
 
-  // Resize
   const handleResizeStart = useCallback((e: React.MouseEvent, handle: string) => {
     if (isMaximized) return;
     isResizing.current = handle;
     resizeStart.current = { x: pos.x, y: pos.y, w: size.w, h: size.h, px: e.clientX, py: e.clientY };
     e.preventDefault();
     e.stopPropagation();
-  }, [pos, size, isMaximized]);
+    focus();
+  }, [pos, size, isMaximized, focus]);
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -157,11 +173,12 @@ export function FloatingWindow({
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="fixed z-[60] bottom-4"
-        style={{ left: pos.x }}
+        className="fixed bottom-4"
+        style={{ left: pos.x, zIndex }}
+        onMouseDown={focus}
       >
         <button
-          onClick={() => setIsMinimized(false)}
+          onClick={() => { setIsMinimized(false); focus(); }}
           className="bg-background border-2 border-accent rounded-xl px-4 py-2 gold-shadow flex items-center gap-2 hover:bg-accent/10 transition-colors"
         >
           <Maximize2 className="h-3.5 w-3.5 text-accent" />
@@ -173,12 +190,11 @@ export function FloatingWindow({
 
   return (
     <motion.div
-      ref={containerRef}
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.95, opacity: 0 }}
       className={cn(
-        "fixed z-[60] flex flex-col bg-background border-2 border-accent rounded-2xl gold-shadow overflow-hidden",
+        "fixed flex flex-col bg-background border-2 border-accent rounded-2xl gold-shadow overflow-hidden",
         className
       )}
       style={{
@@ -186,7 +202,9 @@ export function FloatingWindow({
         top: pos.y,
         width: size.w,
         height: size.h,
+        zIndex,
       }}
+      onMouseDown={focus}
     >
       {/* Title bar - draggable */}
       <div
