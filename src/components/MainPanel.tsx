@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FloatingWindow } from "@/components/FloatingWindow";
 import type { Screenshot } from "@/hooks/useScreenCapture";
 import { cn } from "@/lib/utils";
 
@@ -58,30 +59,32 @@ export function MainPanel({
   );
 
   return (
-    <div className="h-full w-full flex flex-col bg-background" dir="rtl">
-      {/* Header */}
-      <div className="bg-primary px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-lg font-bold text-primary-foreground">ScreenCraft</h1>
-          <Camera className="h-4 w-4 text-accent" />
-        </div>
-        <div className="flex items-center gap-1">
+    <FloatingWindow
+      title="ScreenCraft"
+      onClose={() => {}}
+      defaultWidth={320}
+      defaultHeight={600}
+      minWidth={280}
+      minHeight={400}
+      defaultX={window.innerWidth - 340}
+      defaultY={20}
+      headerClassName="bg-primary"
+      minimizable
+    >
+      <div className="flex flex-col h-full" dir="rtl">
+        {/* Subtitle + Sign out */}
+        <div className="bg-primary/90 px-4 py-1.5 flex items-center justify-between">
+          <p className="text-xs text-primary-foreground/60">מערכת צילום מסך מתקדמת</p>
           <Button
             variant="ghost"
             size="icon"
             onClick={onSignOut}
-            className="h-7 w-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            className="h-6 w-6 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
             title="התנתק"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-3 w-3" />
           </Button>
         </div>
-      </div>
-
-      {/* Subtitle */}
-      <div className="bg-primary/90 px-4 pb-2">
-        <p className="text-xs text-primary-foreground/60">מערכת צילום מסך מתקדמת</p>
-      </div>
 
       {/* Search */}
       <div className="px-3 py-2 border-b border-accent/30">
@@ -173,7 +176,8 @@ export function MainPanel({
           סה"כ: {screenshots.length} פריטים
         </span>
       </div>
-    </div>
+      </div>
+    </FloatingWindow>
   );
 }
 
