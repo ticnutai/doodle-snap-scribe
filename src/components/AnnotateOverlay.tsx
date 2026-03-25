@@ -155,7 +155,27 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
     };
   }, []);
 
+  const handleSelectStamp = useCallback((stamp: StampDefinition) => {
+    if (activeStamp?.id === stamp.id) {
+      setActiveStamp(null);
+    } else {
+      setActiveStamp(stamp);
+    }
+  }, [activeStamp]);
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeStamp) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d")!;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // Save undo state before placing stamp
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      activeStamp.draw(ctx, x, y, stampSize, state.color);
+      return;
+    }
     if (state.tool === "text") {
       const rect = canvasRef.current!.getBoundingClientRect();
       setTextPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
