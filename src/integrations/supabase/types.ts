@@ -74,6 +74,7 @@ export type Database = {
           height: number | null
           id: string
           is_pinned: boolean | null
+          sort_order: number | null
           tags: string[] | null
           thumbnail_path: string | null
           title: string
@@ -89,6 +90,7 @@ export type Database = {
           height?: number | null
           id?: string
           is_pinned?: boolean | null
+          sort_order?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
           title?: string
@@ -104,6 +106,7 @@ export type Database = {
           height?: number | null
           id?: string
           is_pinned?: boolean | null
+          sort_order?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
           title?: string
