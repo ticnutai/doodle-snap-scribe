@@ -23,6 +23,7 @@ const Index = () => {
     downloadScreenshot,
     togglePin,
     saveAnnotation,
+    moveToFolder,
   } = useScreenCapture();
 
   const [showAnnotate, setShowAnnotate] = useState(false);
@@ -167,6 +168,7 @@ const Index = () => {
             onDelete={deleteScreenshot}
             onDownload={downloadScreenshot}
             onPin={handlePin}
+            onMoveToFolder={moveToFolder}
           />
         )}
       </AnimatePresence>
