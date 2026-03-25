@@ -58,7 +58,7 @@ export function MainPanel({
   );
 
   return (
-    <div className="fixed right-0 top-0 h-full w-[320px] z-30 flex flex-col bg-background border-l-2 border-accent" dir="rtl">
+    <div className="h-full w-full flex flex-col bg-background" dir="rtl">
       {/* Header */}
       <div className="bg-primary px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
