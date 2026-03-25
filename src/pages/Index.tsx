@@ -169,6 +169,7 @@ const Index = () => {
             onDownload={downloadScreenshot}
             onPin={handlePin}
             onMoveToFolder={moveToFolder}
+            onReorder={reorderScreenshots}
           />
         )}
       </AnimatePresence>
