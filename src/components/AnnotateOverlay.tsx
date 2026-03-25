@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FloatingWindow } from "@/components/FloatingWindow";
 import {
   Pen,
   ArrowUpRight,
