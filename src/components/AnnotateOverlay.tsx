@@ -16,10 +16,14 @@ import {
   GripHorizontal,
   Minimize2,
   Trash2,
+  Save,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { useAnnotation, AnnotationTool } from "@/hooks/useAnnotation";
+import { useDrawingTemplates } from "@/hooks/useDrawingTemplates";
 import { cn } from "@/lib/utils";
 
 interface AnnotateOverlayProps {
@@ -65,9 +69,14 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
     getCanvasDataUrl,
   } = useAnnotation();
 
+  const { templates, saveTemplate, deleteTemplate, loadTemplate } = useDrawingTemplates();
+
   const [textInput, setTextInput] = useState("");
   const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
 
   // Toolbar drag state
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
@@ -97,12 +106,19 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       } else if (e.ctrlKey && e.key === "y") {
         e.preventDefault();
         redo();
+      } else if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+        setShowSaveDialog(true);
       }
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (showTemplates) setShowTemplates(false);
+        else if (showSaveDialog) setShowSaveDialog(false);
+        else onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, onClose]);
+  }, [undo, redo, onClose, showTemplates, showSaveDialog]);
 
   // Toolbar dragging
   const handleToolbarMouseDown = (e: React.MouseEvent) => {
@@ -157,6 +173,19 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
     onClose();
   };
 
+  const handleSaveTemplate = () => {
+    if (!templateName.trim() || !canvasRef.current) return;
+    saveTemplate(templateName.trim(), canvasRef.current);
+    setTemplateName("");
+    setShowSaveDialog(false);
+  };
+
+  const handleLoadTemplate = (template: Parameters<typeof loadTemplate>[0]) => {
+    if (!canvasRef.current) return;
+    loadTemplate(template, canvasRef.current);
+    setShowTemplates(false);
+  };
+
   const toolbarStyle: React.CSSProperties = toolbarPos
     ? { position: "fixed", left: toolbarPos.x, top: toolbarPos.y, transform: "none" }
     : {};
@@ -203,6 +232,118 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
           </div>
         </div>
       )}
+
+      {/* Save template dialog */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40"
+            onClick={() => setShowSaveDialog(false)}
+          >
+            <div
+              className="bg-background border-2 border-accent rounded-2xl p-5 gold-shadow w-80 space-y-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-display text-lg font-bold text-foreground text-right">שמור כתבנית</h3>
+              <Input
+                autoFocus
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate()}
+                placeholder="שם התבנית..."
+                className="border-accent/30 text-right"
+                dir="rtl"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setShowSaveDialog(false)}>
+                  ביטול
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveTemplate}
+                  disabled={!templateName.trim()}
+                  className="gold-gradient text-primary-foreground border-0"
+                >
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  שמור
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Templates panel */}
+      <AnimatePresence>
+        {showTemplates && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="fixed top-4 right-4 z-[115] bg-background border-2 border-accent rounded-2xl p-4 gold-shadow w-72 max-h-[80vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-sm font-bold text-foreground">תבניות שמורות</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowTemplates(false)}
+                className="h-7 w-7 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-auto space-y-2">
+              {templates.length === 0 ? (
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  <Save className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p>אין תבניות שמורות</p>
+                  <p className="text-xs mt-1">שמור ציור כתבנית עם Ctrl+S</p>
+                </div>
+              ) : (
+                templates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="group border border-accent/30 rounded-xl overflow-hidden hover:border-accent transition-colors cursor-pointer"
+                    onClick={() => handleLoadTemplate(template)}
+                  >
+                    <div className="aspect-video bg-secondary/30 relative">
+                      {template.thumbnailUrl && (
+                        <img
+                          src={template.thumbnailUrl}
+                          alt={template.name}
+                          className="w-full h-full object-contain"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <span className="text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded-lg">
+                          טען תבנית
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-2 flex items-center justify-between">
+                      <span className="text-xs text-foreground font-medium truncate flex-1">{template.name}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTemplate(template.id);
+                        }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Toolbar - Minimized */}
       <AnimatePresence>
@@ -367,6 +508,41 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+
+                  <div className="w-px h-8 bg-accent/30" />
+
+                  {/* Template buttons */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSaveDialog(true)}
+                    className="h-9 w-9 text-foreground hover:bg-accent/10"
+                    title="שמור כתבנית (Ctrl+S)"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      className={cn(
+                        "h-9 w-9 hover:bg-accent/10",
+                        showTemplates ? "gold-gradient text-primary-foreground" : "text-foreground"
+                      )}
+                      title="טען תבנית"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                    </Button>
+                    {templates.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {templates.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-px h-8 bg-accent/30" />
 
                   <Button
                     onClick={handleCapture}
