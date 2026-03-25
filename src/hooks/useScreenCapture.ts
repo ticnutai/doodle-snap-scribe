@@ -15,6 +15,7 @@ export interface Screenshot {
   tags: string[];
   filePath: string;
   isPinned: boolean;
+  folderId: string | null;
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -62,6 +63,7 @@ export function useScreenCapture() {
             tags: row.tags || [],
             filePath: row.file_path,
             isPinned: row.is_pinned || false,
+            folderId: row.folder_id || null,
           };
         })
       );
