@@ -545,6 +545,37 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
 
                   <div className="w-px h-8 bg-accent/30" />
 
+                  {/* Stamps button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setShowStamps(!showStamps); if (!showStamps) setActiveStamp(null); }}
+                    className={cn(
+                      "h-9 w-9 hover:bg-accent/10",
+                      showStamps ? "gold-gradient text-primary-foreground" : "text-foreground"
+                    )}
+                    title="תבניות מוכנות"
+                  >
+                    <Stamp className="h-4 w-4" />
+                  </Button>
+
+                  {/* Stamp size slider (when stamp active) */}
+                  {activeStamp && (
+                    <div className="w-16 flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">גודל</span>
+                      <Slider
+                        value={[stampSize]}
+                        min={30}
+                        max={200}
+                        step={10}
+                        onValueChange={([v]) => setStampSize(v)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+
+                  <div className="w-px h-8 bg-accent/30" />
+
                   {/* Template buttons */}
                   <Button
                     variant="ghost"
