@@ -21,10 +21,6 @@ import { Input } from "@/components/ui/input";
 import { FloatingWindow } from "@/components/FloatingWindow";
 import type { Screenshot } from "@/hooks/useScreenCapture";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import type { Screenshot } from "@/hooks/useScreenCapture";
-import { cn } from "@/lib/utils";
 
 interface MainPanelProps {
   screenshots: Screenshot[];
