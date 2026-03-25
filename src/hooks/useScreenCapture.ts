@@ -15,6 +15,7 @@ export interface Screenshot {
   tags: string[];
   filePath: string;
   isPinned: boolean;
+  folderId: string | null;
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -62,6 +63,7 @@ export function useScreenCapture() {
             tags: row.tags || [],
             filePath: row.file_path,
             isPinned: row.is_pinned || false,
+            folderId: row.folder_id || null,
           };
         })
       );
@@ -209,6 +211,17 @@ export function useScreenCapture() {
     [screenshots?.length, user, saveMutation]
   );
 
+  const moveToFolder = useCallback(
+    async (screenshotId: string, folderId: string | null) => {
+      await supabase
+        .from("screenshots")
+        .update({ folder_id: folderId })
+        .eq("id", screenshotId);
+      queryClient.invalidateQueries({ queryKey: ["screenshots"] });
+    },
+    [queryClient]
+  );
+
   return {
     screenshots,
     isCapturing,
@@ -219,5 +232,6 @@ export function useScreenCapture() {
     downloadScreenshot,
     togglePin,
     saveAnnotation,
+    moveToFolder,
   };
 }

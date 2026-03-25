@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,6 +70,7 @@ export type Database = {
           created_at: string
           file_path: string
           file_size: number | null
+          folder_id: string | null
           height: number | null
           id: string
           is_pinned: boolean | null
@@ -54,6 +85,7 @@ export type Database = {
           created_at?: string
           file_path: string
           file_size?: number | null
+          folder_id?: string | null
           height?: number | null
           id?: string
           is_pinned?: boolean | null
@@ -68,6 +100,7 @@ export type Database = {
           created_at?: string
           file_path?: string
           file_size?: number | null
+          folder_id?: string | null
           height?: number | null
           id?: string
           is_pinned?: boolean | null
@@ -78,7 +111,15 @@ export type Database = {
           user_id?: string
           width?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "screenshots_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
