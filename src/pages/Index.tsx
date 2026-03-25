@@ -8,7 +8,7 @@ import { TimerOverlay } from "@/components/TimerOverlay";
 import { RegionSelectOverlay } from "@/components/RegionSelectOverlay";
 import { useScreenCapture, Screenshot } from "@/hooks/useScreenCapture";
 import { useAuth } from "@/hooks/useAuth";
-import { Camera, Sparkles, PenTool, Image as ImageIcon, Pin, Crop, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
