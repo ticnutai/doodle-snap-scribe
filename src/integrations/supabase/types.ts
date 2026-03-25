@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      drawing_templates: {
+        Row: {
+          canvas_path: string
+          created_at: string
+          height: number
+          id: string
+          name: string
+          thumbnail_path: string | null
+          user_id: string
+          width: number
+        }
+        Insert: {
+          canvas_path: string
+          created_at?: string
+          height: number
+          id?: string
+          name: string
+          thumbnail_path?: string | null
+          user_id: string
+          width: number
+        }
+        Update: {
+          canvas_path?: string
+          created_at?: string
+          height?: number
+          id?: string
+          name?: string
+          thumbnail_path?: string | null
+          user_id?: string
+          width?: number
+        }
+        Relationships: []
+      }
       folders: {
         Row: {
           color: string | null
