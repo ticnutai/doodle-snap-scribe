@@ -79,6 +79,9 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [showStamps, setShowStamps] = useState(false);
+  const [activeStamp, setActiveStamp] = useState<StampDefinition | null>(null);
+  const [stampSize, setStampSize] = useState(80);
 
   // Toolbar drag state
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
