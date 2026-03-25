@@ -141,20 +141,16 @@ export function GalleryPanel({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
-      onClick={onClose}
+    <FloatingWindow
+      title={getActiveFolderName()}
+      onClose={onClose}
+      defaultWidth={1000}
+      defaultHeight={600}
+      minWidth={500}
+      minHeight={350}
+      minimizable
     >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-background border-2 border-accent rounded-2xl w-full max-w-5xl max-h-[85vh] flex gold-shadow overflow-hidden"
-      >
+      <div className="flex h-full overflow-hidden">
         <DragDropContext onDragEnd={handleDragEnd}>
           {/* Sidebar - Folders */}
           <div className="w-56 border-l border-accent/30 flex flex-col shrink-0 bg-secondary/30">
