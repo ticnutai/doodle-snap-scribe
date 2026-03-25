@@ -1,15 +1,12 @@
 import { useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
-import { FloatingSidebar } from "@/components/FloatingSidebar";
+import { MainPanel } from "@/components/MainPanel";
 import { AnnotateOverlay } from "@/components/AnnotateOverlay";
-import { GalleryPanel } from "@/components/GalleryPanel";
 import { PinnedScreenshot } from "@/components/PinnedScreenshot";
 import { TimerOverlay } from "@/components/TimerOverlay";
 import { RegionSelectOverlay } from "@/components/RegionSelectOverlay";
 import { useScreenCapture, Screenshot } from "@/hooks/useScreenCapture";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -28,7 +25,6 @@ const Index = () => {
   } = useScreenCapture();
 
   const [showAnnotate, setShowAnnotate] = useState(false);
-  const [showGallery, setShowGallery] = useState(false);
   const [localPinned, setLocalPinned] = useState<Screenshot[]>([]);
   const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
   const [regionScreenshot, setRegionScreenshot] = useState<string | null>(null);
@@ -77,37 +73,32 @@ const Index = () => {
     togglePin(id);
   }, [togglePin]);
 
+  const handleCopy = useCallback(async (screenshot: Screenshot) => {
+    try {
+      const res = await fetch(screenshot.dataUrl);
+      const blob = await res.blob();
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden" dir="rtl">
-      {/* User menu */}
-      <div className="fixed top-4 left-4 z-30 flex items-center gap-2">
-        <div className="bg-background border-2 border-accent/30 rounded-xl px-3 py-1.5 flex items-center gap-2 gold-shadow">
-          <User className="h-4 w-4 text-accent" />
-          <span className="text-xs text-foreground font-medium">{user?.email}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            title="התנתק"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Floating Sidebar */}
-      <FloatingSidebar
+      {/* Main Panel - always visible */}
+      <MainPanel
+        screenshots={screenshots}
         onCapture={captureScreen}
         onRegionCapture={handleRegionCapture}
         onAnnotateMode={() => setShowAnnotate(true)}
-        onGalleryOpen={() => setShowGallery(true)}
         onTimerCapture={handleTimerCapture}
+        onDelete={deleteScreenshot}
+        onDownload={downloadScreenshot}
+        onPin={handlePin}
+        onCopy={handleCopy}
         isCapturing={isCapturing}
-        screenshotCount={screenshots.length}
+        onSignOut={signOut}
       />
-
-      {/* Empty workspace */}
 
       {/* Overlays */}
       <AnimatePresence>
@@ -115,20 +106,6 @@ const Index = () => {
           <AnnotateOverlay
             onCapture={handleAnnotateCapture}
             onClose={() => setShowAnnotate(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showGallery && (
-          <GalleryPanel
-            screenshots={screenshots}
-            onClose={() => setShowGallery(false)}
-            onDelete={deleteScreenshot}
-            onDownload={downloadScreenshot}
-            onPin={handlePin}
-            onMoveToFolder={moveToFolder}
-            onReorder={reorderScreenshots}
           />
         )}
       </AnimatePresence>
