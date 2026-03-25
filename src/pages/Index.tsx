@@ -84,7 +84,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden" dir="rtl">
+    <div className="h-screen bg-background overflow-hidden" dir="rtl">
       {/* Main Panel - always visible */}
       <MainPanel
         screenshots={screenshots}
