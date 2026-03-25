@@ -110,6 +110,14 @@ export function FloatingSidebar({
                 />
 
                 <SidebarButton
+                  icon={Crop}
+                  label="צלם אזור"
+                  sublabel="בחר אזור ספציפי"
+                  onClick={onRegionCapture}
+                  disabled={isCapturing}
+                />
+
+                <SidebarButton
                   icon={PenTool}
                   label="סמן וצלם"
                   sublabel="ציור לפני צילום"
