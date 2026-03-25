@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FloatingWindow } from "@/components/FloatingWindow";
 import {
   Pen,
   ArrowUpRight,
@@ -117,9 +118,8 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
         setShowSaveDialog(true);
       }
       if (e.key === "Escape") {
-        if (showTemplates) setShowTemplates(false);
-        else if (showSaveDialog) setShowSaveDialog(false);
-        else onClose();
+        if (showTemplates || showSaveDialog) return; // FloatingWindow handles its own Escape
+        onClose();
       }
     };
     window.addEventListener("keydown", handler);
@@ -266,18 +266,15 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       {/* Save template dialog */}
       <AnimatePresence>
         {showSaveDialog && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40"
-            onClick={() => setShowSaveDialog(false)}
+          <FloatingWindow
+            title="שמור כתבנית"
+            onClose={() => setShowSaveDialog(false)}
+            defaultWidth={320}
+            defaultHeight={180}
+            minWidth={280}
+            minHeight={150}
           >
-            <div
-              className="bg-background border-2 border-accent rounded-2xl p-5 gold-shadow w-80 space-y-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="font-display text-lg font-bold text-foreground text-right">שמור כתבנית</h3>
+            <div className="p-4 space-y-3">
               <Input
                 autoFocus
                 value={templateName}
@@ -302,32 +299,24 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </FloatingWindow>
         )}
       </AnimatePresence>
 
       {/* Templates panel */}
       <AnimatePresence>
         {showTemplates && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="fixed top-4 right-4 z-[115] bg-background border-2 border-accent rounded-2xl p-4 gold-shadow w-72 max-h-[80vh] flex flex-col"
+          <FloatingWindow
+            title="תבניות שמורות"
+            onClose={() => setShowTemplates(false)}
+            defaultWidth={300}
+            defaultHeight={400}
+            minWidth={250}
+            minHeight={200}
+            defaultX={window.innerWidth - 320}
+            defaultY={16}
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display text-sm font-bold text-foreground">תבניות שמורות</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowTemplates(false)}
-                className="h-7 w-7 text-muted-foreground"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-auto space-y-2">
+            <div className="p-3 flex-1 overflow-auto space-y-2">
               {templates.length === 0 ? (
                 <div className="text-center text-muted-foreground text-sm py-8">
                   <Save className="h-8 w-8 mx-auto mb-2 opacity-40" />
@@ -371,7 +360,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                 ))
               )}
             </div>
-          </motion.div>
+          </FloatingWindow>
         )}
       </AnimatePresence>
 
