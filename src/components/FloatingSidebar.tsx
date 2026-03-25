@@ -8,6 +8,7 @@ import {
   PinOff,
   Timer,
   Monitor,
+  Crop,
   Download,
   Trash2,
   Settings,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface FloatingSidebarProps {
   onCapture: () => void;
+  onRegionCapture: () => void;
   onAnnotateMode: () => void;
   onGalleryOpen: () => void;
   onTimerCapture: (seconds: number) => void;
@@ -26,6 +28,7 @@ interface FloatingSidebarProps {
 
 export function FloatingSidebar({
   onCapture,
+  onRegionCapture,
   onAnnotateMode,
   onGalleryOpen,
   onTimerCapture,
@@ -103,6 +106,14 @@ export function FloatingSidebar({
                   label="צלם מסך"
                   sublabel="צילום מיידי"
                   onClick={onCapture}
+                  disabled={isCapturing}
+                />
+
+                <SidebarButton
+                  icon={Crop}
+                  label="צלם אזור"
+                  sublabel="בחר אזור ספציפי"
+                  onClick={onRegionCapture}
                   disabled={isCapturing}
                 />
 

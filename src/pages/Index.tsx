@@ -5,9 +5,10 @@ import { AnnotateOverlay } from "@/components/AnnotateOverlay";
 import { GalleryPanel } from "@/components/GalleryPanel";
 import { PinnedScreenshot } from "@/components/PinnedScreenshot";
 import { TimerOverlay } from "@/components/TimerOverlay";
+import { RegionSelectOverlay } from "@/components/RegionSelectOverlay";
 import { useScreenCapture, Screenshot } from "@/hooks/useScreenCapture";
 import { useAuth } from "@/hooks/useAuth";
-import { Camera, Sparkles, PenTool, Image as ImageIcon, Pin, LogOut, User } from "lucide-react";
+import { Camera, Sparkles, PenTool, Image as ImageIcon, Pin, Crop, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
@@ -16,6 +17,8 @@ const Index = () => {
     screenshots,
     isCapturing,
     captureScreen,
+    captureRegion,
+    saveCroppedRegion,
     deleteScreenshot,
     downloadScreenshot,
     togglePin,
@@ -26,6 +29,7 @@ const Index = () => {
   const [showGallery, setShowGallery] = useState(false);
   const [localPinned, setLocalPinned] = useState<Screenshot[]>([]);
   const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
+  const [regionScreenshot, setRegionScreenshot] = useState<string | null>(null);
 
   const handleAnnotateCapture = useCallback(
     (dataUrl: string) => {
@@ -43,6 +47,21 @@ const Index = () => {
     captureScreen();
   }, [captureScreen]);
 
+  const handleRegionCapture = useCallback(async () => {
+    const dataUrl = await captureRegion();
+    if (dataUrl) {
+      setRegionScreenshot(dataUrl);
+    }
+  }, [captureRegion]);
+
+  const handleRegionCrop = useCallback(
+    (croppedDataUrl: string) => {
+      saveCroppedRegion(croppedDataUrl);
+      setRegionScreenshot(null);
+    },
+    [saveCroppedRegion]
+  );
+
   const handlePin = useCallback((screenshot: Screenshot) => {
     setLocalPinned((prev) => {
       if (prev.find((s) => s.id === screenshot.id)) return prev;
@@ -58,7 +77,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden" dir="rtl">
-      {/* User menu - top right */}
+      {/* User menu */}
       <div className="fixed top-4 left-4 z-30 flex items-center gap-2">
         <div className="bg-background border-2 border-accent/30 rounded-xl px-3 py-1.5 flex items-center gap-2 gold-shadow">
           <User className="h-4 w-4 text-accent" />
@@ -78,6 +97,7 @@ const Index = () => {
       {/* Floating Sidebar */}
       <FloatingSidebar
         onCapture={captureScreen}
+        onRegionCapture={handleRegionCapture}
         onAnnotateMode={() => setShowAnnotate(true)}
         onGalleryOpen={() => setShowGallery(true)}
         onTimerCapture={handleTimerCapture}
@@ -101,9 +121,10 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4">
             {[
               { icon: Camera, title: "צילום מהיר", desc: "צלם בלחיצה" },
+              { icon: Crop, title: "צלם אזור", desc: "בחר אזור ספציפי" },
               { icon: PenTool, title: "סמן וצלם", desc: "ציור לפני צילום" },
               { icon: ImageIcon, title: "גלריה חכמה", desc: "נהל צילומים" },
               { icon: Pin, title: "נעיצה", desc: "תצוגה צפה" },
@@ -153,6 +174,16 @@ const Index = () => {
       <AnimatePresence>
         {timerSeconds !== null && (
           <TimerOverlay seconds={timerSeconds} onComplete={handleTimerComplete} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {regionScreenshot && (
+          <RegionSelectOverlay
+            screenshotDataUrl={regionScreenshot}
+            onCrop={handleRegionCrop}
+            onCancel={() => setRegionScreenshot(null)}
+          />
         )}
       </AnimatePresence>
 
