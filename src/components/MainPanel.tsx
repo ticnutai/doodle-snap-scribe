@@ -85,7 +85,6 @@ export function MainPanel({
             <LogOut className="h-3 w-3" />
           </Button>
         </div>
-      </div>
 
       {/* Search */}
       <div className="px-3 py-2 border-b border-accent/30">
