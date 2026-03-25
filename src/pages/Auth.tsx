@@ -24,9 +24,13 @@ export default function AuthPage() {
         if (error) throw error;
         toast.success("ברוך הבא!");
       } else {
-        const { error } = await signUp(email, password);
+        const { error, data } = await signUp(email, password);
         if (error) throw error;
-        toast.success("נרשמת בהצלחה! בדוק את המייל לאישור.");
+        if (data?.session) {
+          toast.success("נרשמת בהצלחה! ברוך הבא!");
+        } else {
+          toast.success("נרשמת בהצלחה! בדוק את המייל לאישור.");
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "שגיאה בהתחברות");
