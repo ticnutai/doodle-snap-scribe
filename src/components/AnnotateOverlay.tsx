@@ -370,6 +370,15 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
         )}
       </AnimatePresence>
 
+      {/* Preset stamps panel */}
+      <PresetStamps
+        visible={showStamps}
+        onClose={() => setShowStamps(false)}
+        onSelectStamp={handleSelectStamp}
+        activeStampId={activeStamp?.id || null}
+        currentColor={state.color}
+      />
+
       {/* Toolbar - Minimized */}
       <AnimatePresence>
         {isMinimized && (
