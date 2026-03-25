@@ -1,0 +1,1 @@
+ALTER TABLE public.screenshots ADD COLUMN sort_order INTEGER DEFAULT 0;
