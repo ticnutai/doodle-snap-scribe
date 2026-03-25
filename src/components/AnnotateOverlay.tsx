@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pen,
@@ -18,12 +18,14 @@ import {
   Trash2,
   Save,
   FolderOpen,
+  Stamp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useAnnotation, AnnotationTool } from "@/hooks/useAnnotation";
 import { useDrawingTemplates } from "@/hooks/useDrawingTemplates";
+import { PresetStamps, StampDefinition } from "@/components/PresetStamps";
 import { cn } from "@/lib/utils";
 
 interface AnnotateOverlayProps {
