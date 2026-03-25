@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 
-export type AnnotationTool = "pen" | "arrow" | "rectangle" | "text" | "eraser";
+export type AnnotationTool = "pen" | "arrow" | "rectangle" | "circle" | "line" | "highlighter" | "text" | "eraser";
 
 export interface AnnotationState {
   tool: AnnotationTool;
@@ -11,13 +11,15 @@ export interface AnnotationState {
 
 export function useAnnotation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<AnnotationState>({
     tool: "pen",
     color: "hsl(220, 60%, 20%)",
     lineWidth: 3,
     isDrawing: false,
   });
-  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const startPoint = useRef<{ x: number; y: number } | null>(null);
+  const historyRef = useRef<ImageData[]>([]);
 
   const setTool = useCallback((tool: AnnotationTool) => {
     setState((prev) => ({ ...prev, tool }));
@@ -44,27 +46,113 @@ export function useAnnotation() {
     []
   );
 
+  const saveHistory = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    historyRef.current.push(imageData);
+    if (historyRef.current.length > 50) historyRef.current.shift();
+  }, []);
+
+  const undo = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || historyRef.current.length === 0) return;
+    const ctx = canvas.getContext("2d")!;
+    const prev = historyRef.current.pop()!;
+    ctx.putImageData(prev, 0, 0);
+  }, []);
+
+  const clearPreview = useCallback(() => {
+    const preview = previewCanvasRef.current;
+    if (!preview) return;
+    const ctx = preview.getContext("2d")!;
+    ctx.clearRect(0, 0, preview.width, preview.height);
+  }, []);
+
+  const drawShape = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      tool: AnnotationTool,
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      color: string,
+      lineWidth: number
+    ) => {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (tool === "arrow") {
+        // Line
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+
+        // Arrowhead
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        const headLen = Math.max(15, lineWidth * 5);
+        ctx.beginPath();
+        ctx.moveTo(end.x, end.y);
+        ctx.lineTo(
+          end.x - headLen * Math.cos(angle - Math.PI / 6),
+          end.y - headLen * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+          end.x - headLen * Math.cos(angle + Math.PI / 6),
+          end.y - headLen * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fill();
+      } else if (tool === "rectangle") {
+        ctx.beginPath();
+        ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y);
+        ctx.stroke();
+      } else if (tool === "circle") {
+        const rx = Math.abs(end.x - start.x) / 2;
+        const ry = Math.abs(end.y - start.y) / 2;
+        const cx = start.x + (end.x - start.x) / 2;
+        const cy = start.y + (end.y - start.y) / 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (tool === "line") {
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+    },
+    []
+  );
+
   const startDrawing = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const point = getCanvasPoint(e);
-      lastPoint.current = point;
+      startPoint.current = point;
       setState((prev) => ({ ...prev, isDrawing: true }));
+
+      // Save state before drawing for undo
+      saveHistory();
 
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d")!;
 
-      if (state.tool === "pen" || state.tool === "eraser") {
+      if (state.tool === "pen" || state.tool === "eraser" || state.tool === "highlighter") {
         ctx.beginPath();
         ctx.moveTo(point.x, point.y);
       }
     },
-    [getCanvasPoint, state.tool]
+    [getCanvasPoint, state.tool, saveHistory]
   );
 
   const draw = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!state.isDrawing) return;
+      if (!state.isDrawing || !startPoint.current) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d")!;
@@ -77,74 +165,72 @@ export function useAnnotation() {
         ctx.lineJoin = "round";
         ctx.lineTo(point.x, point.y);
         ctx.stroke();
-      } else if (state.tool === "eraser") {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = state.lineWidth * 4;
+      } else if (state.tool === "highlighter") {
+        ctx.strokeStyle = state.color;
+        ctx.lineWidth = state.lineWidth * 6;
         ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.globalAlpha = 0.3;
         ctx.lineTo(point.x, point.y);
         ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (state.tool === "eraser") {
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.lineWidth = state.lineWidth * 4;
+        ctx.lineCap = "round";
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      } else if (
+        state.tool === "arrow" ||
+        state.tool === "rectangle" ||
+        state.tool === "circle" ||
+        state.tool === "line"
+      ) {
+        // Live preview on preview canvas
+        const preview = previewCanvasRef.current;
+        if (!preview) return;
+        const pCtx = preview.getContext("2d")!;
+        pCtx.clearRect(0, 0, preview.width, preview.height);
+        drawShape(pCtx, state.tool, startPoint.current, point, state.color, state.lineWidth);
       }
-
-      lastPoint.current = point;
     },
-    [state, getCanvasPoint]
+    [state, getCanvasPoint, drawShape]
   );
 
   const stopDrawing = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (!canvas || !state.isDrawing) return;
+      if (!canvas || !state.isDrawing || !startPoint.current) return;
       const ctx = canvas.getContext("2d")!;
       const point = getCanvasPoint(e);
 
-      if (state.tool === "arrow" && lastPoint.current) {
-        const start = lastPoint.current;
-        ctx.strokeStyle = state.color;
-        ctx.lineWidth = state.lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(point.x, point.y);
-        ctx.stroke();
-
-        // Arrowhead
-        const angle = Math.atan2(point.y - start.y, point.x - start.x);
-        const headLen = 15;
-        ctx.beginPath();
-        ctx.moveTo(point.x, point.y);
-        ctx.lineTo(
-          point.x - headLen * Math.cos(angle - Math.PI / 6),
-          point.y - headLen * Math.sin(angle - Math.PI / 6)
-        );
-        ctx.moveTo(point.x, point.y);
-        ctx.lineTo(
-          point.x - headLen * Math.cos(angle + Math.PI / 6),
-          point.y - headLen * Math.sin(angle + Math.PI / 6)
-        );
-        ctx.stroke();
-      } else if (state.tool === "rectangle" && lastPoint.current) {
-        const start = lastPoint.current;
-        ctx.strokeStyle = state.color;
-        ctx.lineWidth = state.lineWidth;
-        ctx.strokeRect(
-          start.x,
-          start.y,
-          point.x - start.x,
-          point.y - start.y
-        );
+      if (
+        state.tool === "arrow" ||
+        state.tool === "rectangle" ||
+        state.tool === "circle" ||
+        state.tool === "line"
+      ) {
+        // Draw final shape on main canvas
+        drawShape(ctx, state.tool, startPoint.current, point, state.color, state.lineWidth);
+        clearPreview();
       }
 
       setState((prev) => ({ ...prev, isDrawing: false }));
-      lastPoint.current = null;
+      startPoint.current = null;
     },
-    [state, getCanvasPoint]
+    [state, getCanvasPoint, drawShape, clearPreview]
   );
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    saveHistory();
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }, []);
+    clearPreview();
+  }, [saveHistory, clearPreview]);
 
   const getCanvasDataUrl = useCallback(() => {
     return canvasRef.current?.toDataURL("image/png") || null;
@@ -152,6 +238,7 @@ export function useAnnotation() {
 
   return {
     canvasRef,
+    previewCanvasRef,
     state,
     setTool,
     setColor,
@@ -160,6 +247,7 @@ export function useAnnotation() {
     draw,
     stopDrawing,
     clearCanvas,
+    undo,
     getCanvasDataUrl,
   };
 }
