@@ -225,7 +225,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       {/* Main drawing canvas */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 cursor-crosshair"
+        className={cn("absolute inset-0", activeStamp ? "cursor-copy" : "cursor-crosshair")}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
