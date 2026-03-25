@@ -211,6 +211,17 @@ export function useScreenCapture() {
     [screenshots?.length, user, saveMutation]
   );
 
+  const moveToFolder = useCallback(
+    async (screenshotId: string, folderId: string | null) => {
+      await supabase
+        .from("screenshots")
+        .update({ folder_id: folderId })
+        .eq("id", screenshotId);
+      queryClient.invalidateQueries({ queryKey: ["screenshots"] });
+    },
+    [queryClient]
+  );
+
   return {
     screenshots,
     isCapturing,
@@ -221,5 +232,6 @@ export function useScreenCapture() {
     downloadScreenshot,
     togglePin,
     saveAnnotation,
+    moveToFolder,
   };
 }
