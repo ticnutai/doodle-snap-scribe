@@ -118,9 +118,8 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
         setShowSaveDialog(true);
       }
       if (e.key === "Escape") {
-        if (showTemplates) setShowTemplates(false);
-        else if (showSaveDialog) setShowSaveDialog(false);
-        else onClose();
+        if (showTemplates || showSaveDialog) return; // FloatingWindow handles its own Escape
+        onClose();
       }
     };
     window.addEventListener("keydown", handler);
