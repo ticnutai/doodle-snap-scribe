@@ -16,6 +16,7 @@ export interface Screenshot {
   filePath: string;
   isPinned: boolean;
   folderId: string | null;
+  sortOrder: number;
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -44,6 +45,7 @@ export function useScreenCapture() {
         .from("screenshots")
         .select("*")
         .eq("user_id", user.id)
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -64,6 +66,7 @@ export function useScreenCapture() {
             filePath: row.file_path,
             isPinned: row.is_pinned || false,
             folderId: row.folder_id || null,
+            sortOrder: row.sort_order || 0,
           };
         })
       );
@@ -222,6 +225,41 @@ export function useScreenCapture() {
     [queryClient]
   );
 
+  const reorderScreenshots = useCallback(
+    async (reorderedIds: { id: string; sortOrder: number; folderId?: string | null }[]) => {
+      // Optimistic update
+      queryClient.setQueryData(["screenshots", user?.id], (old: Screenshot[] | undefined) => {
+        if (!old) return old;
+        return old.map((s) => {
+          const update = reorderedIds.find((r) => r.id === s.id);
+          if (update) {
+            return {
+              ...s,
+              sortOrder: update.sortOrder,
+              folderId: update.folderId !== undefined ? update.folderId : s.folderId,
+            };
+          }
+          return s;
+        }).sort((a, b) => a.sortOrder - b.sortOrder);
+      });
+
+      // Persist
+      await Promise.all(
+        reorderedIds.map((item) =>
+          supabase
+            .from("screenshots")
+            .update({
+              sort_order: item.sortOrder,
+              ...(item.folderId !== undefined ? { folder_id: item.folderId } : {}),
+            })
+            .eq("id", item.id)
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["screenshots"] });
+    },
+    [queryClient, user?.id]
+  );
+
   return {
     screenshots,
     isCapturing,
@@ -233,5 +271,6 @@ export function useScreenCapture() {
     togglePin,
     saveAnnotation,
     moveToFolder,
+    reorderScreenshots,
   };
 }
