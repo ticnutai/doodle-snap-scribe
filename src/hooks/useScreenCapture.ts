@@ -213,6 +213,8 @@ export function useScreenCapture() {
     screenshots,
     isCapturing,
     captureScreen,
+    captureRegion,
+    saveCroppedRegion,
     deleteScreenshot,
     downloadScreenshot,
     togglePin,
