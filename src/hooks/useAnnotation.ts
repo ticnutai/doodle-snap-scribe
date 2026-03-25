@@ -7,6 +7,8 @@ export interface AnnotationState {
   color: string;
   lineWidth: number;
   isDrawing: boolean;
+  undoCount: number;
+  redoCount: number;
 }
 
 export function useAnnotation() {
@@ -17,9 +19,21 @@ export function useAnnotation() {
     color: "hsl(220, 60%, 20%)",
     lineWidth: 3,
     isDrawing: false,
+    undoCount: 0,
+    redoCount: 0,
   });
   const startPoint = useRef<{ x: number; y: number } | null>(null);
-  const historyRef = useRef<ImageData[]>([]);
+  const undoStack = useRef<ImageData[]>([]);
+  const redoStack = useRef<ImageData[]>([]);
+  const MAX_HISTORY = 50;
+
+  const updateCounts = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      undoCount: undoStack.current.length,
+      redoCount: redoStack.current.length,
+    }));
+  }, []);
 
   const setTool = useCallback((tool: AnnotationTool) => {
     setState((prev) => ({ ...prev, tool }));
@@ -46,22 +60,47 @@ export function useAnnotation() {
     []
   );
 
-  const saveHistory = useCallback(() => {
+  const saveToUndo = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    historyRef.current.push(imageData);
-    if (historyRef.current.length > 50) historyRef.current.shift();
-  }, []);
+    undoStack.current.push(imageData);
+    if (undoStack.current.length > MAX_HISTORY) undoStack.current.shift();
+    // New action clears redo stack
+    redoStack.current = [];
+    updateCounts();
+  }, [updateCounts]);
 
   const undo = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || historyRef.current.length === 0) return;
+    if (!canvas || undoStack.current.length === 0) return;
     const ctx = canvas.getContext("2d")!;
-    const prev = historyRef.current.pop()!;
+
+    // Save current state to redo stack
+    const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    redoStack.current.push(currentState);
+
+    // Restore previous state
+    const prev = undoStack.current.pop()!;
     ctx.putImageData(prev, 0, 0);
-  }, []);
+    updateCounts();
+  }, [updateCounts]);
+
+  const redo = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || redoStack.current.length === 0) return;
+    const ctx = canvas.getContext("2d")!;
+
+    // Save current state to undo stack
+    const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    undoStack.current.push(currentState);
+
+    // Restore redo state
+    const next = redoStack.current.pop()!;
+    ctx.putImageData(next, 0, 0);
+    updateCounts();
+  }, [updateCounts]);
 
   const clearPreview = useCallback(() => {
     const preview = previewCanvasRef.current;
@@ -86,13 +125,11 @@ export function useAnnotation() {
       ctx.lineJoin = "round";
 
       if (tool === "arrow") {
-        // Line
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
 
-        // Arrowhead
         const angle = Math.atan2(end.y - start.y, end.x - start.x);
         const headLen = Math.max(15, lineWidth * 5);
         ctx.beginPath();
@@ -135,8 +172,7 @@ export function useAnnotation() {
       startPoint.current = point;
       setState((prev) => ({ ...prev, isDrawing: true }));
 
-      // Save state before drawing for undo
-      saveHistory();
+      saveToUndo();
 
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -147,7 +183,7 @@ export function useAnnotation() {
         ctx.moveTo(point.x, point.y);
       }
     },
-    [getCanvasPoint, state.tool, saveHistory]
+    [getCanvasPoint, state.tool, saveToUndo]
   );
 
   const draw = useCallback(
@@ -188,7 +224,6 @@ export function useAnnotation() {
         state.tool === "circle" ||
         state.tool === "line"
       ) {
-        // Live preview on preview canvas
         const preview = previewCanvasRef.current;
         if (!preview) return;
         const pCtx = preview.getContext("2d")!;
@@ -212,7 +247,6 @@ export function useAnnotation() {
         state.tool === "circle" ||
         state.tool === "line"
       ) {
-        // Draw final shape on main canvas
         drawShape(ctx, state.tool, startPoint.current, point, state.color, state.lineWidth);
         clearPreview();
       }
@@ -226,11 +260,11 @@ export function useAnnotation() {
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    saveHistory();
+    saveToUndo();
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     clearPreview();
-  }, [saveHistory, clearPreview]);
+  }, [saveToUndo, clearPreview]);
 
   const getCanvasDataUrl = useCallback(() => {
     return canvasRef.current?.toDataURL("image/png") || null;
@@ -248,6 +282,7 @@ export function useAnnotation() {
     stopDrawing,
     clearCanvas,
     undo,
+    redo,
     getCanvasDataUrl,
   };
 }

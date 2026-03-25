@@ -7,6 +7,7 @@ import {
   Type,
   Eraser,
   Undo2,
+  Redo2,
   X,
   Camera,
   Circle,
@@ -14,7 +15,7 @@ import {
   Highlighter,
   GripHorizontal,
   Minimize2,
-  Maximize2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -60,6 +61,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
     stopDrawing,
     clearCanvas,
     undo,
+    redo,
     getCanvasDataUrl,
   } = useAnnotation();
 
@@ -86,15 +88,21 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "z") {
+      if (e.ctrlKey && e.shiftKey && e.key === "Z") {
+        e.preventDefault();
+        redo();
+      } else if (e.ctrlKey && e.key === "z") {
         e.preventDefault();
         undo();
+      } else if (e.ctrlKey && e.key === "y") {
+        e.preventDefault();
+        redo();
       }
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, onClose]);
+  }, [undo, redo, onClose]);
 
   // Toolbar dragging
   const handleToolbarMouseDown = (e: React.MouseEvent) => {
@@ -314,24 +322,50 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={undo}
-                    className="h-9 w-9 text-foreground hover:bg-accent/10"
-                    title="בטל (Ctrl+Z)"
-                  >
-                    <Undo2 className="h-4 w-4" />
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={undo}
+                      disabled={state.undoCount === 0}
+                      className="h-9 w-9 text-foreground hover:bg-accent/10 disabled:opacity-30"
+                      title="בטל (Ctrl+Z)"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </Button>
+                    {state.undoCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {state.undoCount}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={redo}
+                      disabled={state.redoCount === 0}
+                      className="h-9 w-9 text-foreground hover:bg-accent/10 disabled:opacity-30"
+                      title="בצע שוב (Ctrl+Y / Ctrl+Shift+Z)"
+                    >
+                      <Redo2 className="h-4 w-4" />
+                    </Button>
+                    {state.redoCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {state.redoCount}
+                      </span>
+                    )}
+                  </div>
 
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={clearCanvas}
-                    className="h-9 w-9 text-foreground hover:bg-accent/10"
+                    className="h-9 w-9 text-foreground hover:bg-destructive/10 hover:text-destructive"
                     title="נקה הכל"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
 
                   <Button
