@@ -82,6 +82,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
   const [showStamps, setShowStamps] = useState(false);
   const [activeStamp, setActiveStamp] = useState<StampDefinition | null>(null);
   const [stampSize, setStampSize] = useState(80);
+  const [stampRotation, setStampRotation] = useState(0);
 
   // Toolbar drag state
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
@@ -559,19 +560,33 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                     <Stamp className="h-4 w-4" />
                   </Button>
 
-                  {/* Stamp size slider (when stamp active) */}
+                  {/* Stamp size & rotation sliders (when stamp active) */}
                   {activeStamp && (
-                    <div className="w-16 flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground">גודל</span>
-                      <Slider
-                        value={[stampSize]}
-                        min={30}
-                        max={200}
-                        step={10}
-                        onValueChange={([v]) => setStampSize(v)}
-                        className="w-full"
-                      />
-                    </div>
+                    <>
+                      <div className="w-16 flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">גודל</span>
+                        <Slider
+                          value={[stampSize]}
+                          min={30}
+                          max={200}
+                          step={10}
+                          onValueChange={([v]) => setStampSize(v)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="w-20 flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">סיבוב</span>
+                        <Slider
+                          value={[stampRotation]}
+                          min={0}
+                          max={360}
+                          step={15}
+                          onValueChange={([v]) => setStampRotation(v)}
+                          className="w-full"
+                        />
+                        <span className="text-[10px] text-muted-foreground w-6">{stampRotation}°</span>
+                      </div>
+                    </>
                   )}
 
                   <div className="w-px h-8 bg-accent/30" />
