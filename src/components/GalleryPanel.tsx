@@ -418,8 +418,8 @@ export function GalleryPanel({
             </div>
           </div>
         </DragDropContext>
-      </motion.div>
-    </motion.div>
+      </div>
+    </FloatingWindow>
   );
 }
 
