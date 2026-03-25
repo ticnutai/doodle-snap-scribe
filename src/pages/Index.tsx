@@ -24,6 +24,7 @@ const Index = () => {
     togglePin,
     saveAnnotation,
     moveToFolder,
+    reorderScreenshots,
   } = useScreenCapture();
 
   const [showAnnotate, setShowAnnotate] = useState(false);
