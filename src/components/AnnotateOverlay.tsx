@@ -267,18 +267,15 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       {/* Save template dialog */}
       <AnimatePresence>
         {showSaveDialog && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40"
-            onClick={() => setShowSaveDialog(false)}
+          <FloatingWindow
+            title="שמור כתבנית"
+            onClose={() => setShowSaveDialog(false)}
+            defaultWidth={320}
+            defaultHeight={180}
+            minWidth={280}
+            minHeight={150}
           >
-            <div
-              className="bg-background border-2 border-accent rounded-2xl p-5 gold-shadow w-80 space-y-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="font-display text-lg font-bold text-foreground text-right">שמור כתבנית</h3>
+            <div className="p-4 space-y-3">
               <Input
                 autoFocus
                 value={templateName}
@@ -303,7 +300,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </FloatingWindow>
         )}
       </AnimatePresence>
 
