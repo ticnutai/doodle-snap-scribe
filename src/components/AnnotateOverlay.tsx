@@ -7,6 +7,7 @@ import {
   Type,
   Eraser,
   Undo2,
+  Redo2,
   X,
   Camera,
   Circle,
@@ -14,7 +15,7 @@ import {
   Highlighter,
   GripHorizontal,
   Minimize2,
-  Maximize2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
