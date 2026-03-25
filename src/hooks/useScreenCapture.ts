@@ -110,7 +110,7 @@ export function useScreenCapture() {
     },
   });
 
-  const captureScreen = useCallback(async () => {
+  const captureFullScreen = useCallback(async (): Promise<string | null> => {
     try {
       setIsCapturing(true);
       const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -130,21 +130,39 @@ export function useScreenCapture() {
 
       stream.getTracks().forEach((t) => t.stop());
 
-      const dataUrl = canvas.toDataURL("image/png");
-      const title = `Screenshot ${(screenshots?.length || 0) + 1}`;
-
-      if (user) {
-        saveMutation.mutate({ dataUrl, title });
-      }
-
-      return { id: crypto.randomUUID(), dataUrl, timestamp: new Date(), title, tags: [], filePath: "", isPinned: false };
+      return canvas.toDataURL("image/png");
     } catch (err) {
       console.error("Screen capture failed:", err);
       return null;
     } finally {
       setIsCapturing(false);
     }
-  }, [screenshots?.length, user, saveMutation]);
+  }, []);
+
+  const captureScreen = useCallback(async () => {
+    const dataUrl = await captureFullScreen();
+    if (!dataUrl) return null;
+
+    const title = `Screenshot ${(screenshots?.length || 0) + 1}`;
+    if (user) {
+      saveMutation.mutate({ dataUrl, title });
+    }
+    return { id: crypto.randomUUID(), dataUrl, timestamp: new Date(), title, tags: [], filePath: "", isPinned: false };
+  }, [captureFullScreen, screenshots?.length, user, saveMutation]);
+
+  const captureRegion = useCallback(async (): Promise<string | null> => {
+    return await captureFullScreen();
+  }, [captureFullScreen]);
+
+  const saveCroppedRegion = useCallback(
+    (dataUrl: string) => {
+      const title = `Region ${(screenshots?.length || 0) + 1}`;
+      if (user) {
+        saveMutation.mutate({ dataUrl, title });
+      }
+    },
+    [screenshots?.length, user, saveMutation]
+  );
 
   const deleteScreenshot = useCallback(
     async (id: string) => {
