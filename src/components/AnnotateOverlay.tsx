@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pen,
@@ -18,12 +18,14 @@ import {
   Trash2,
   Save,
   FolderOpen,
+  Stamp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useAnnotation, AnnotationTool } from "@/hooks/useAnnotation";
 import { useDrawingTemplates } from "@/hooks/useDrawingTemplates";
+import { PresetStamps, StampDefinition } from "@/components/PresetStamps";
 import { cn } from "@/lib/utils";
 
 interface AnnotateOverlayProps {
@@ -77,6 +79,9 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [showStamps, setShowStamps] = useState(false);
+  const [activeStamp, setActiveStamp] = useState<StampDefinition | null>(null);
+  const [stampSize, setStampSize] = useState(80);
 
   // Toolbar drag state
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
@@ -150,7 +155,27 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
     };
   }, []);
 
+  const handleSelectStamp = useCallback((stamp: StampDefinition) => {
+    if (activeStamp?.id === stamp.id) {
+      setActiveStamp(null);
+    } else {
+      setActiveStamp(stamp);
+    }
+  }, [activeStamp]);
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeStamp) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d")!;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // Save undo state before placing stamp
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      activeStamp.draw(ctx, x, y, stampSize, state.color);
+      return;
+    }
     if (state.tool === "text") {
       const rect = canvasRef.current!.getBoundingClientRect();
       setTextPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -200,7 +225,7 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
       {/* Main drawing canvas */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 cursor-crosshair"
+        className={cn("absolute inset-0", activeStamp ? "cursor-copy" : "cursor-crosshair")}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
@@ -344,6 +369,15 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Preset stamps panel */}
+      <PresetStamps
+        visible={showStamps}
+        onClose={() => setShowStamps(false)}
+        onSelectStamp={handleSelectStamp}
+        activeStampId={activeStamp?.id || null}
+        currentColor={state.color}
+      />
 
       {/* Toolbar - Minimized */}
       <AnimatePresence>
@@ -508,6 +542,37 @@ export function AnnotateOverlay({ onCapture, onClose }: AnnotateOverlayProps) {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+
+                  <div className="w-px h-8 bg-accent/30" />
+
+                  {/* Stamps button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setShowStamps(!showStamps); if (!showStamps) setActiveStamp(null); }}
+                    className={cn(
+                      "h-9 w-9 hover:bg-accent/10",
+                      showStamps ? "gold-gradient text-primary-foreground" : "text-foreground"
+                    )}
+                    title="תבניות מוכנות"
+                  >
+                    <Stamp className="h-4 w-4" />
+                  </Button>
+
+                  {/* Stamp size slider (when stamp active) */}
+                  {activeStamp && (
+                    <div className="w-16 flex items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground">גודל</span>
+                      <Slider
+                        value={[stampSize]}
+                        min={30}
+                        max={200}
+                        step={10}
+                        onValueChange={([v]) => setStampSize(v)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
 
                   <div className="w-px h-8 bg-accent/30" />
 
